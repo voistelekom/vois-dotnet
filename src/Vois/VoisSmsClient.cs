@@ -69,24 +69,48 @@ namespace Vois
     public sealed class VoisSmsClient : IDisposable
     {
         public const string DefaultBaseUrl = "https://api.vois.com.tr/";
+        public const string ApiKeyBaseUrl = "https://api.vois.com.tr/v1/sms/";
 
         private readonly HttpClient _http;
         private readonly bool _ownsHttp;
         private readonly string _base;
         private readonly AuthenticationHeaderValue _auth;
+        private readonly bool _keyMode;
 
         /// <param name="username">SMS API user given by VOIS (not your panel login).</param>
         /// <param name="password">SMS API password.</param>
         /// <param name="httpClient">Optional shared HttpClient (e.g. from IHttpClientFactory); it is not modified or disposed.</param>
         /// <param name="baseUrl">Defaults to https://api.vois.com.tr/</param>
         public VoisSmsClient(string username, string password, HttpClient? httpClient = null, string baseUrl = DefaultBaseUrl)
+            : this(Basic(username, password), false, httpClient, baseUrl)
         {
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
-                throw new ArgumentException("SMS API kullanıcı adı ve şifresi gerekli.");
-            _auth = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(username + ":" + password)));
+        }
+
+        private VoisSmsClient(AuthenticationHeaderValue auth, bool keyMode, HttpClient? httpClient, string baseUrl)
+        {
+            _auth = auth;
+            _keyMode = keyMode;
             _ownsHttp = httpClient is null;
             _http = httpClient ?? new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
             _base = Http.Base(baseUrl);
+        }
+
+        private static AuthenticationHeaderValue Basic(string username, string password)
+        {
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+                throw new ArgumentException("SMS API kullanıcı adı ve şifresi gerekli.");
+            return new AuthenticationHeaderValue("Basic", Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(username + ":" + password)));
+        }
+
+        /// <summary>
+        /// Client that authenticates with a VOIS API key (scopes sms:send / sms:read) instead of the SMS user/password.
+        /// Same methods; requests go to https://api.vois.com.tr/v1/sms/. VOIS-side errors ({error, message}, e.g.
+        /// insufficient_scope, sms_not_configured) arrive as <see cref="VoisSmsException"/> with ErrorCode = the error value.
+        /// </summary>
+        public static VoisSmsClient FromApiKey(string apiKey, HttpClient? http = null, string baseUrl = ApiKeyBaseUrl)
+        {
+            if (string.IsNullOrEmpty(apiKey)) throw new ArgumentException("VOIS API anahtarı gerekli.");
+            return new VoisSmsClient(new AuthenticationHeaderValue("Bearer", apiKey), true, http, baseUrl);
         }
 
         // ------------------------------------------------------------ sending
@@ -240,6 +264,7 @@ namespace Vois
 
         private async Task<JsonElement> RequestAsync(HttpMethod method, string path, object? body, CancellationToken ct)
         {
+            if (_keyMode) path = path == "user/credit" ? "credit" : path.StartsWith("sms/", StringComparison.Ordinal) ? path.Substring(4) : path;
             using var req = new HttpRequestMessage(method, _base + path);
             req.Headers.Authorization = _auth;
             if (body is not null) req.Content = Http.JsonBody(body);
@@ -251,6 +276,8 @@ namespace Vois
                 if (doc is null || doc.RootElement.ValueKind != JsonValueKind.Object)
                     throw new VoisException($"VOIS SMS API'den beklenmeyen yanıt (HTTP {status}).", status);
                 var root = doc.RootElement;
+                if (root.Str("error") is { } voisCode)
+                    throw new VoisSmsException(root.Str("message") ?? voisCode, voisCode, null, status);
                 if (root.TryGetProperty("err", out var err) && err.ValueKind == JsonValueKind.Object)
                 {
                     var code = err.TryGetProperty("code", out var c) && c.ValueKind == JsonValueKind.String ? c.GetString()! : "ERR_UNKNOWN";

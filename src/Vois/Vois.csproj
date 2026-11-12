@@ -5,11 +5,11 @@
     <Nullable>enable</Nullable>
     <RootNamespace>Vois</RootNamespace>
     <PackageId>Vois</PackageId>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Authors>VOIS</Authors>
     <Company>VOIS</Company>
     <Description>VOIS SMS ve Ses API istemcisi: SMS/OTP gönderimi, tıkla-ara, çağrı geçmişi, ses kayıtları, webhook imza doğrulama.</Description>
-    <PackageTags>vois;sms;otp;click-to-call;pbx;webhook</PackageTags>
+    <PackageTags>vois;sms;otp;click-to-call;pbx;webhook;api-key</PackageTags>
     <PackageProjectUrl>https://docs.vois.com.tr/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/voistelekom/vois-dotnet</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

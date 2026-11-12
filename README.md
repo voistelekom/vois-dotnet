@@ -42,6 +42,23 @@ catch (VoisSmsException e)
 
 Rapor yöntemleri (`PackagesAsync`, `PackageItemsAsync`, `SummaryAsync`, `InquiryAsync`, `SendersAsync`, `GatewaysAsync`, `InboundAsync`) yanıtın `data` alanını `JsonElement` olarak döndürür. Ham gövde için (ör. MMS): `SendAsync(dictionary)`.
 
+### VOIS API anahtarıyla SMS
+
+SMS kullanıcı adı yerine panelde oluşturduğunuz VOIS API anahtarıyla da gönderebilirsiniz (anahtarda `sms:send` / `sms:read` yetkisi olmalı). Yöntemler aynıdır.
+
+```csharp
+using var sms = VoisSmsClient.FromApiKey("vois_1234_…");
+decimal kredi = await sms.CreditAsync();
+try
+{
+    await sms.SendSingleAsync("905321234567", "Merhaba", "BASLIK", "Deneme gonderim");
+}
+catch (VoisSmsException e)
+{
+    // e.ErrorCode — VOIS tarafı hatalarda: insufficient_scope, sms_not_configured, sms_blocked, rate_limited …
+}
+```
+
 ## Ses (tıkla-ara, çağrı geçmişi, kayıtlar)
 
 Anahtarı VOIS panelinizde oluşturun: **Ayarlar › Açık REST API & Webhook › API & Webhook Yönetimi**.
@@ -75,6 +92,25 @@ builder.Services.AddSingleton(sp => new VoisVoiceClient(builder.Configuration["V
     sp.GetRequiredService<IHttpClientFactory>().CreateClient("vois")));
 ```
 
+## Webhook yönetimi
+
+Anahtarınızla (`webhooks:manage` yetkisi) kendi webhook'larınızı kodla yönetin. Bir anahtar yalnızca kendi oluşturduklarını görür ve siler.
+
+```csharp
+using var wh = new VoisWebhookClient("vois_1234_…");
+try
+{
+    var kayit = await wh.CreateAsync("call.ended", "https://siteniz.com/vois/webhook");
+    var gizli = kayit.Secret;                 // yalnızca burada görünür; saklayın
+}
+catch (VoisWebhookException e)
+{
+    // e.ErrorCode: invalid_event, url_not_allowed, https_required, limit_reached …
+}
+foreach (var h in await wh.ListAsync()) Console.WriteLine($"{h.Id} {h.Event} {h.Url}");
+bool silindi = await wh.DeleteAsync(3);       // false: bulunamadı
+```
+
 ## Webhook doğrulama (ASP.NET Core)
 
 ```csharp
@@ -103,6 +139,7 @@ app.MapPost("/vois/webhook", async (HttpRequest req) =>
 |---|---|
 | `VoisSmsException` | SMS API hata döndürdü (`ErrorCode`, `Status`, `HttpStatus`) |
 | `VoisVoiceException` | Ses API hata döndürdü (`ErrorCode`, `HttpStatus`) |
+| `VoisWebhookException` | Webhook yönetimi hata döndürdü (`ErrorCode`, `HttpStatus`) |
 | `VoisSignatureException` | Webhook imzası geçersiz ya da olay eski |
 | `VoisException` | Ağ hatası ya da beklenmeyen yanıt (diğerlerinin üst sınıfı) |
 

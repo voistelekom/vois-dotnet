@@ -16,7 +16,7 @@ namespace Vois.Internal
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping, // request bodies only; keeps Turkish text readable
         };
 
-        internal const string UserAgent = "vois-dotnet/1.0";
+        internal const string UserAgent = "vois-dotnet/1.1";
 
         internal static string Base(string baseUrl) => baseUrl.TrimEnd('/') + "/";
 

@@ -40,6 +40,17 @@ namespace Vois
         public string ErrorCode { get; }
     }
 
+    /// <summary>Webhook management API returned an error. Branch on <see cref="ErrorCode"/> (unauthorized, insufficient_scope, invalid_event, url_not_allowed, https_required, limit_reached …).</summary>
+    public sealed class VoisWebhookException : VoisException
+    {
+        public VoisWebhookException(string message, string errorCode, int? httpStatus) : base(message, httpStatus)
+        {
+            ErrorCode = errorCode;
+        }
+
+        public string ErrorCode { get; }
+    }
+
     /// <summary>Webhook failed signature or freshness check: reject it with HTTP 401.</summary>
     public sealed class VoisSignatureException : VoisException
     {

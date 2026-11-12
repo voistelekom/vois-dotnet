@@ -120,7 +120,8 @@ namespace Vois
                 }
                 if (status == 204) return default;
                 using var doc = Http.TryParse(text);
-                if (doc is null || doc.RootElement.ValueKind != JsonValueKind.Object || !doc.RootElement.TryGetProperty("data", out var data))
+                if (doc is null || doc.RootElement.ValueKind != JsonValueKind.Object || !doc.RootElement.TryGetProperty("data", out var data)
+                    || (data.ValueKind != JsonValueKind.Object && data.ValueKind != JsonValueKind.Array))
                     throw new VoisException($"VOIS API'den beklenmeyen yanıt (HTTP {status}).", status);
                 return data.Clone();
             }

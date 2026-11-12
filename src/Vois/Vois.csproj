@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <RootNamespace>Vois</RootNamespace>
     <PackageId>Vois</PackageId>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <Authors>VOIS</Authors>
     <Company>VOIS</Company>
     <Description>VOIS SMS ve Ses API istemcisi: SMS/OTP gönderimi, tıkla-ara, çağrı geçmişi, ses kayıtları, webhook imza doğrulama.</Description>

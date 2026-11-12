@@ -54,4 +54,12 @@ public class WebhookClientTests
     {
         Assert.Throws<ArgumentException>(() => new VoisWebhookClient(""));
     }
+
+    [Fact]
+    public async Task Null_data_throws_vois_exception()
+    {
+        var (w, _) = Make(new FakeHandler().Json(HttpStatusCode.OK, "{\"data\":null}").Json(HttpStatusCode.Created, "{\"data\":null}"));
+        Assert.Contains("beklenmeyen yanıt", (await Assert.ThrowsAsync<VoisException>(() => w.ListAsync())).Message);
+        Assert.Contains("beklenmeyen yanıt", (await Assert.ThrowsAsync<VoisException>(() => w.CreateAsync("call.ended", "https://a.example/h"))).Message);
+    }
 }
